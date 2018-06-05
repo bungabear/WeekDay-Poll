@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Weekday-poll</title>
+</head>
+<body>
+<center>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<script src="https://www.gstatic.com/firebasejs/5.0.4/firebase.js"></script>
+<script src="https://www.gstatic.com/firebasejs/5.0.4/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/5.0.4/firebase-firestore.js"></script>
+<script>
+    // Initialize Firebase
+    const config = {
+        apiKey: "AIzaSyC9E_vw0Lngmm8n5Tl6M3kcuy71eIlWEy8",
+        authDomain: "weekdaypoll.firebaseapp.com",
+        databaseURL: "https://weekdaypoll.firebaseio.com",
+        projectId: "weekdaypoll",
+        storageBucket: "weekdaypoll.appspot.com",
+        messagingSenderId: "538730892863"
+    };
+
+    const settings = {/* your settings... */ timestampsInSnapshots: true};
+    const app = firebase.initializeApp(config);
+    const db = firebase.firestore(app);
+    db.settings(settings);
+    
+</script>
+
+<script>
+    var url_string = window.location.href; //window.location.href
+    var url = new URL(url_string);
+    var table_id = url.searchParams.get("tableid");
+    if(table_id == null){
+        window.location.replace(`/index.html?tableid=${+ new Date()}`);
+    }
+
+    var isSyncing = false;
+    var myId = 'newuser1';
+    var userList = [];
+    
+    // Login User's time selection
+    var tableCells = [];
+    // 8 x 24
+    var mySelection = {};
+    var mySelectionDayTmpName = '';
+    var mySelectionDayTmp = [];
+    for(let i = 0 ; i < 8; i++){
+        mySelection[`${i}`] = (new Array(24)).fill(0)
+    }
+    
+    // Other People's selection
+    var otherSelection = {user1:[]}
+    
+    // TODO Choose a user
+    // TODO Show Loading..
+    var docRef = db.collection('table').doc(table_id);
+    docRef.get().then(function(doc) {
+        if (doc.exists) {
+            var data = doc.data();
+            console.log("Document data:", doc.data());
+            // 새 유저는 문서에 등록.
+            if(!data.users.includes(myId)){
+                data.users.push(myId);
+                userList = data.users;
+                data[myId] = mySelection;
+                console.log(data);
+                db.collection('table').doc(table_id).update(data)
+                .then(()=>{
+                    console.log('Useradd Success.');
+                }).catch((error)=> {
+                    console.error("Error update document: ", error);
+                })
+            }
+        } else {
+        // No such document!
+            writeNewDB()
+        }
+    }).catch(function(error) {
+        console.log("Error getting document:", error);
+    });
+    
+
+    
+    var weekdays = ['', 'Sun', 'Mon', 'Tue', 'Wed', 'Thr', 'Fri', 'Sat']
+    
+    function writeNewDB(){
+        db.collection("table").doc(table_id).set({
+              users: ['newuser'],
+              newuser: []
+          })
+        .then(()=> {
+            console.log("Document successfully written!");
+        })
+        .catch((error)=> {
+            console.error("Error writing document: ", error);
+        });
+    }
+    
+    function updateDB(){
+        var tableData = {};
+        isSyncing = true;
+        $('#sync_btn')
+            .prop("disabled", true)
+            .prop('value', '저장중');
+        tableData[myId] = mySelection;
+        db.collection('table').doc(table_id).update(tableData)
+        .then(()=> {
+            isSyncing = false;
+            $('#sync_btn')
+                .prop("disabled", false)
+                .prop('value', '저장하기');;
+        })
+        .catch((error)=> {
+            console.error("Error writing document: ", error);
+        });
+    }
+
+
+    function addTimeTableCol(rowid, iter, text){
+        $(`#tr${rowid}`).append(`<td id=td${rowid}_${iter} onclick='cellclick(this)' align='center'>${text}</td>`);
+    }
+
+    function addTimeTableRow(iter){
+        $("#main_table").append(`<tr id='tr${iter}'></tr>`)
+        for(let i = 0; i < 8; i++){
+            let text = '';
+            if(i == 0){
+                text = iter+":00";
+            }
+            addTimeTableCol(iter, i, text);
+        }
+    }
+
+    function addWeekday(){
+        $("#main_table").append(`<tr id=tr_weekday></tr>`)
+        for(let i = 0; i < 8; i++){
+            addTimeTableCol('_weekday', i, weekdays[i]);
+        }
+    }
+
+    function cellclick(obj){
+        if(obj.id.includes('weekday_')){
+            if(mySelectionDayTmpName == obj.id.charAt(11)){
+                mySelection[mySelectionDayTmpName] = mySelectionDayTmp.slice();
+                for(let i = 0 ; i < 24; i++){
+                    if(mySelectionDayTmp[i] == 0){
+//                        mySelection[mySelectionDayTmpName][i] = 0;
+                        $(`#td${i}_${mySelectionDayTmpName}`).animate({backgroundColor: "#ffffff"}, 50)       
+                    }
+                }
+                mySelectionDayTmp = [];
+                mySelectionDayTmpName = '';
+            }
+            else {
+                mySelectionDayTmpName = obj.id.charAt(11);
+                mySelectionDayTmp = mySelection[mySelectionDayTmpName].slice();
+                
+                for(let i = 0 ; i < 24; i++){
+                    mySelection[mySelectionDayTmpName][i] = 1;
+                    $(`#td${i}_${mySelectionDayTmpName}`).animate({backgroundColor: "#5CD1E5"}, 100)   
+                }
+            }
+        }
+        else {
+            var id = obj.id.split(/td(\d*)_(\d*)/).filter(Boolean);   
+            console.log(`#td${id[0]}_${id[1]}`);
+            if(mySelection[id[1]][id[0]] != 1){
+                mySelection[id[1]][id[0]] = 1
+                $(`#td${id[0]}_${id[1]}`).animate({backgroundColor: "#5CD1E5"}, 100)
+            }
+            else {
+                mySelection[id[1]][id[0]] = 0
+                $(`#td${id[0]}_${id[1]}`).animate({backgroundColor: "#ffffff"}, 50)
+            }
+        }
+        updateDB();
+    }
+
+</script>
+                
+        
+<dialog id="favDialog" open>
+  <form method="dialog">
+    <section>
+      
+<input type="radio" name="chk_info" value="HTML">HTML
+<input type="radio" name="chk_info" value="CSS">CSS
+<input type="radio" name="chk_info" value="웹디자인">웹디자인
+    </section>
+    <menu>
+      <button id="cancel" type="reset">Cancel</button>
+      <button type="submit">Confirm</button>
+    </menu>
+  </form>
+</dialog>
+        
+    <input type='button' value='저장하기' id='sync_btn' onclick='updateDB()'>
+    <table id="main_table" align="center" border="1" bordercolor="#5CD1E5"
+        width="550" height="600">
+        
+    </table>
+    
+    <script>   
+        addWeekday()
+        // TODO 늦은 시간 안보이기 기능 추가. row번호는 시간에 따름.
+        for(let i = 0; i < 24; i++){
+            addTimeTableRow(i)
+        }
+        
+        for(let i = 0 ; i < 8; i++){
+            tableCells[i] = new Array(24);
+            for(let j = 0 ; j < 24; j++){
+                tableCells[i][j] = $(`#td${j}_${i}`);
+            }
+        }
+    </script>
+        </center>
+</body>
+</html>
