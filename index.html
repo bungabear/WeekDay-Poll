@@ -34,7 +34,7 @@
     var url = new URL(url_string);
     var table_id = url.searchParams.get("tableid");
     if(table_id == null){
-        window.location.replace(`/index.html?tableid=${+ new Date()}`);
+        window.location.replace(`/WeekDay-Poll/index.html?tableid=${+ new Date()}`);
     }
 
     var isSyncing = false;
