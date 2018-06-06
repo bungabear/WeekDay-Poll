@@ -1,13 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-beta/css/materialize.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-beta/js/materialize.min.js"></script>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Weekday-poll</title>
 </head>
 <body>
 <center>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+
 <script src="https://www.gstatic.com/firebasejs/5.0.4/firebase.js"></script>
 <script src="https://www.gstatic.com/firebasejs/5.0.4/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/5.0.4/firebase-firestore.js"></script>
@@ -34,7 +39,8 @@
     var url = new URL(url_string);
     var table_id = url.searchParams.get("tableid");
     if(table_id == null){
-        window.location.replace(`/WeekDay-Poll/index.html?tableid=${+ new Date()}`);
+        window.location.replace(`/index.html?tableid=${+ new Date()}`);
+        //window.location.replace(`/WeekDay-Poll/index.html?tableid=${+ new Date()}`);
     }
 
     var isSyncing = false;
@@ -120,7 +126,7 @@
 
 
     function addTimeTableCol(rowid, iter, text){
-        $(`#tr${rowid}`).append(`<td id=td${rowid}_${iter} onclick='cellclick(this)' align='center'>${text}</td>`);
+        $(`#tr${rowid}`).append(`<td id=td${rowid}_${iter}  align='center'>${text}</td>`);
     }
 
     function addTimeTableRow(iter){
@@ -216,7 +222,32 @@
                 tableCells[i][j] = $(`#td${j}_${i}`);
             }
         }
+       
+  $(function () {
+      var isMouseDown = false;
+      $("#main_table td")
+        .mousedown(function () {
+          isMouseDown = true;
+          cellclick(this);
+//          $(this).toggleClass("highlighted");
+          return false; // prevent text selection
+        })
+        .mouseover(function () {
+          if (isMouseDown) {
+              cellclick(this);
+//            $(this).toggleClass("highlighted");
+          }
+        })
+        .bind("selectstart", function () {
+          return false; // prevent text selection in IE
+        });
+
+      $(document)
+        .mouseup(function () {
+          isMouseDown = false;
+        });
+    });
     </script>
-        </center>
+</center>
 </body>
 </html>
