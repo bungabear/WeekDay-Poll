@@ -3,19 +3,71 @@
 <head>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-beta/css/materialize.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0-beta/js/materialize.min.js"></script>
+
+<!--Import Google Icon Font-->
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<!--Import materialize.css-->
+<link type="text/css" rel="stylesheet" href="css/materialize.min.css"  media="screen,projection"/>
+<script src="js/loading.js"></script>
+<link href="css/loading.css" rel="stylesheet" type="text/css" />
+<script src="https://www.gstatic.com/firebasejs/5.0.0/firebase.js"></script>
+<script src="https://www.gstatic.com/firebasejs/5.0.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/5.0.0/firebase-firestore.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Weekday-poll</title>
 </head>
+
 <body>
+    <!-- Preloader and it's background. -->
+<div class="preloader-background">
+    <div class="preloader-wrapper big active">
+      <div class="spinner-layer spinner-blue">
+        <div class="circle-clipper left">
+          <div class="circle"></div>
+        </div><div class="gap-patch">
+          <div class="circle"></div>
+        </div><div class="circle-clipper right">
+          <div class="circle"></div>
+        </div>
+      </div>
+
+      <div class="spinner-layer spinner-red">
+        <div class="circle-clipper left">
+          <div class="circle"></div>
+        </div><div class="gap-patch">
+          <div class="circle"></div>
+        </div><div class="circle-clipper right">
+          <div class="circle"></div>
+        </div>
+      </div>
+
+      <div class="spinner-layer spinner-yellow">
+        <div class="circle-clipper left">
+          <div class="circle"></div>
+        </div><div class="gap-patch">
+          <div class="circle"></div>
+        </div><div class="circle-clipper right">
+          <div class="circle"></div>
+        </div>
+      </div>
+
+
+      <div class="spinner-layer spinner-green">
+        <div class="circle-clipper left">
+          <div class="circle"></div>
+        </div><div class="gap-patch">
+          <div class="circle"></div>
+        </div><div class="circle-clipper right">
+          <div class="circle"></div>
+        </div>
+      </div>
+    </div>
+  <p class="blinking">Loading</p>
+</div>
+
 <center>
 
-
-<script src="https://www.gstatic.com/firebasejs/5.0.4/firebase.js"></script>
-<script src="https://www.gstatic.com/firebasejs/5.0.4/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/5.0.4/firebase-firestore.js"></script>
 <script>
     // Initialize Firebase
     const config = {
@@ -31,7 +83,7 @@
     const app = firebase.initializeApp(config);
     const db = firebase.firestore(app);
     db.settings(settings);
-    
+
 </script>
 
 <script>
@@ -39,14 +91,18 @@
     var url = new URL(url_string);
     var table_id = url.searchParams.get("tableid");
     if(table_id == null){
-        window.location.replace(`/index.html?tableid=${+ new Date()}`);
-        //window.location.replace(`/WeekDay-Poll/index.html?tableid=${+ new Date()}`);
+        window.location.replace(url.href + `?tableid=${+ new Date()}`);
+//            window.location.replace(`/index.html?tableid=${+ new Date()}`);
+//        }
+//        else {
+//            window.location.replace(`/WeekDay-Poll/index.html?tableid=${+ new Date()}`);
+//        }
     }
 
     var isSyncing = false;
     var myId = 'newuser1';
     var userList = [];
-    
+
     // Login User's time selection
     var tableCells = [];
     // 8 x 24
@@ -56,12 +112,13 @@
     for(let i = 0 ; i < 8; i++){
         mySelection[`${i}`] = (new Array(24)).fill(0)
     }
-    
+
     // Other People's selection
     var otherSelection = {user1:[]}
-    
+
     // TODO Choose a user
     // TODO Show Loading..
+
     var docRef = db.collection('table').doc(table_id);
     docRef.get().then(function(doc) {
         if (doc.exists) {
@@ -87,11 +144,11 @@
     }).catch(function(error) {
         console.log("Error getting document:", error);
     });
-    
 
-    
+
+
     var weekdays = ['', 'Sun', 'Mon', 'Tue', 'Wed', 'Thr', 'Fri', 'Sat']
-    
+
     function writeNewDB(){
         db.collection("table").doc(table_id).set({
               users: ['newuser'],
@@ -104,7 +161,7 @@
             console.error("Error writing document: ", error);
         });
     }
-    
+
     function updateDB(){
         var tableData = {};
         isSyncing = true;
@@ -154,7 +211,7 @@
                 for(let i = 0 ; i < 24; i++){
                     if(mySelectionDayTmp[i] == 0){
 //                        mySelection[mySelectionDayTmpName][i] = 0;
-                        $(`#td${i}_${mySelectionDayTmpName}`).animate({backgroundColor: "#ffffff"}, 50)       
+                        $(`#td${i}_${mySelectionDayTmpName}`).animate({backgroundColor: "#ffffff"}, 50)
                     }
                 }
                 mySelectionDayTmp = [];
@@ -163,15 +220,15 @@
             else {
                 mySelectionDayTmpName = obj.id.charAt(11);
                 mySelectionDayTmp = mySelection[mySelectionDayTmpName].slice();
-                
+
                 for(let i = 0 ; i < 24; i++){
                     mySelection[mySelectionDayTmpName][i] = 1;
-                    $(`#td${i}_${mySelectionDayTmpName}`).animate({backgroundColor: "#5CD1E5"}, 100)   
+                    $(`#td${i}_${mySelectionDayTmpName}`).animate({backgroundColor: "#5CD1E5"}, 100)
                 }
             }
         }
         else {
-            var id = obj.id.split(/td(\d*)_(\d*)/).filter(Boolean);   
+            var id = obj.id.split(/td(\d*)_(\d*)/).filter(Boolean);
             console.log(`#td${id[0]}_${id[1]}`);
             if(mySelection[id[1]][id[0]] != 1){
                 mySelection[id[1]][id[0]] = 1
@@ -186,12 +243,12 @@
     }
 
 </script>
-                
-        
+
+<!--
 <dialog id="favDialog" open>
   <form method="dialog">
     <section>
-      
+
 <input type="radio" name="chk_info" value="HTML">HTML
 <input type="radio" name="chk_info" value="CSS">CSS
 <input type="radio" name="chk_info" value="웹디자인">웹디자인
@@ -201,28 +258,30 @@
       <button type="submit">Confirm</button>
     </menu>
   </form>
-</dialog>
-        
-    <input type='button' value='저장하기' id='sync_btn' onclick='updateDB()'>
+</dialog> -->
+
+      <button class="btn waves-effect waves-light" type="submit" id="sync_btn" onclick="updateDB()">저장하기
+    <i class="material-icons right">send</i>
+  </button>
     <table id="main_table" align="center" border="1" bordercolor="#5CD1E5"
         width="550" height="600">
-        
+
     </table>
-    
-    <script>   
+
+    <script>
         addWeekday()
         // TODO 늦은 시간 안보이기 기능 추가. row번호는 시간에 따름.
         for(let i = 0; i < 24; i++){
             addTimeTableRow(i)
         }
-        
+
         for(let i = 0 ; i < 8; i++){
             tableCells[i] = new Array(24);
             for(let j = 0 ; j < 24; j++){
                 tableCells[i][j] = $(`#td${j}_${i}`);
             }
         }
-       
+       // drag event handle
   $(function () {
       var isMouseDown = false;
       $("#main_table td")
@@ -248,6 +307,8 @@
         });
     });
     </script>
+
+    <script type="text/javascript" src="js/materialize.min.js"></script>
 </center>
 </body>
 </html>
