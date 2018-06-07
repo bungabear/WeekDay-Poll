@@ -3,13 +3,22 @@
 <head>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-
 <!--Import Google Icon Font-->
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 <!--Import materialize.css-->
 <link type="text/css" rel="stylesheet" href="css/materialize.min.css"  media="screen,projection"/>
 <script src="js/loading.js"></script>
 <link href="css/loading.css" rel="stylesheet" type="text/css" />
+    
+<script>
+        var url_string = window.location.href; //window.location.href
+    var url = new URL(url_string);
+    var table_id = url.searchParams.get("tableid");
+    if(table_id == null){
+        window.location.replace(url.href + `?tableid=${+ new Date()}`);
+    }
+</script>
+
 <script src="https://www.gstatic.com/firebasejs/5.0.0/firebase.js"></script>
 <script src="https://www.gstatic.com/firebasejs/5.0.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/5.0.0/firebase-firestore.js"></script>
@@ -63,12 +72,30 @@
         </div>
       </div>
     </div>
-  <p class="blinking">Loading</p>
+</div>
+
+<!-- Modal Structure -->
+<div id="modal1" class="modal bottom-sheet">
+    <div class="modal-content">
+      <h4>사용자 이름 지정</h4>
+        <div class="collection" id="user_select_area">
+          <div class="collection-item">
+            <input placeholder="Username" id="new_username" type="text" class="validate" style="width: auto">
+              <a href="#!" class="secondary-content"onclick=selectUser(this)><i class="material-icons">add</i></a></div>
+          <a href="#!" class="collection-item" onclick=selectUser(this)>test</a>
+      </div>
+    </div>
 </div>
 
 <center>
-
+    <button class="btn waves-effect waves-light" type="submit" id="sync_btn" onclick="updateDB()">저장하기
+        <i class="material-icons right">send</i>
+    </button>
+    <table id="main_table" align="center" border="1" bordercolor="#4a148c"
+        width="550" height="600">
+    </table>
 <script>
+    const weekdays = ['', 'Sun', 'Mon', 'Tue', 'Wed', 'Thr', 'Fri', 'Sat']
     // Initialize Firebase
     const config = {
         apiKey: "AIzaSyC9E_vw0Lngmm8n5Tl6M3kcuy71eIlWEy8",
@@ -78,103 +105,213 @@
         storageBucket: "weekdaypoll.appspot.com",
         messagingSenderId: "538730892863"
     };
-
     const settings = {/* your settings... */ timestampsInSnapshots: true};
     const app = firebase.initializeApp(config);
     const db = firebase.firestore(app);
     db.settings(settings);
-
-</script>
-
-<script>
-    var url_string = window.location.href; //window.location.href
-    var url = new URL(url_string);
-    var table_id = url.searchParams.get("tableid");
-    if(table_id == null){
-        window.location.replace(url.href + `?tableid=${+ new Date()}`);
-//            window.location.replace(`/index.html?tableid=${+ new Date()}`);
-//        }
-//        else {
-//            window.location.replace(`/WeekDay-Poll/index.html?tableid=${+ new Date()}`);
-//        }
-    }
-
+    
+    var IsDocExist = false;
+    var needSync = false;
     var isSyncing = false;
-    var myId = 'newuser1';
+    var myId = '';
     var userList = [];
-
-    // Login User's time selection
+    var selections = [];
     var tableCells = [];
-    // 8 x 24
-    var mySelection = {};
-    var mySelectionDayTmpName = '';
-    var mySelectionDayTmp = [];
-    for(let i = 0 ; i < 8; i++){
-        mySelection[`${i}`] = (new Array(24)).fill(0)
+    
+    addWeekday()
+    // TODO 늦은 시간 안보이기 기능 추가. row번호는 시간에 따름.
+    for(let i = 0; i < 24; i++){
+        addTimeTableRow(i)
     }
 
-    // Other People's selection
-    var otherSelection = {user1:[]}
-
-    // TODO Choose a user
-    // TODO Show Loading..
-
-    var docRef = db.collection('table').doc(table_id);
-    docRef.get().then(function(doc) {
-        if (doc.exists) {
-            var data = doc.data();
-            console.log("Document data:", doc.data());
-            // 새 유저는 문서에 등록.
-            if(!data.users.includes(myId)){
-                data.users.push(myId);
-                userList = data.users;
-                data[myId] = mySelection;
-                console.log(data);
-                db.collection('table').doc(table_id).update(data)
+    for(let i = 0 ; i < 8; i++){
+        tableCells[i] = new Array(24);
+        for(let j = 0 ; j < 24; j++){
+            tableCells[i][j] = $(`#td${j}_${i}`);
+        }
+    }
+    
+    $(document).ready(function(){
+        var docRef = db.collection('table').doc(table_id);
+        docRef.get().then(function(doc) {
+            if (doc.exists) {
+                IsDocExist = true;
+                restoreData(doc.data());
+            }
+            else {
+                IsDocExist = false;
+            }
+        }).catch(function(error) {
+            console.log("Error getting document:", error);
+        });
+        $('.modal').modal({dismissible: false}).modal('open');
+    });
+    
+//    showLoading("#10eeeeee");
+//    var docRef = db.collection('table').doc(table_id);
+//    docRef.get().then(function(doc) {
+//        if (doc.exists) {
+//            var data = doc.data();
+//            console.log("Document data:", doc.data());
+//            // 새 유저는 문서에 등록.
+//            if(!data.users.includes(myId)){
+//                data.users.push(myId);
+//                userList = data.users;
+//                data[myId] = mySelection;
+//                console.log(data);
+//                db.collection('table').doc(table_id).update(data)
+//                .then(()=>{
+//                    console.log('Useradd Success.');
+//                    hideLoading();
+//                }).catch((error)=> {
+//                    console.error("Error update document: ", error);
+//                })
+//            }
+//            
+//        } else {
+//        // No such document!
+//            writeNewDB()
+//            hideLoading();
+//        }
+//    }).catch(function(error) {
+//        console.log("Error getting document:", error);
+//    });
+    
+    function selectUser(obj){
+        let newUser = false;
+        if(obj.text == 'add'){
+            newUser = true;
+            myId = $("#new_username").value || $("#new_username")[0].value;
+            userList.push(myId);
+        }
+        else {
+            myId = obj.text;
+        }
+        
+        $('.modal').modal('close');
+        if(!IsDocExist){
+            writeNewDB();
+        }
+        else {
+            if(newUser){
+                 db.collection('table').doc(table_id).update({
+                    users: userList
+                })
                 .then(()=>{
                     console.log('Useradd Success.');
+//                    hideLoading();
                 }).catch((error)=> {
-                    console.error("Error update document: ", error);
+                    console.error("Useradd fail: ", error);
                 })
             }
-        } else {
-        // No such document!
-            writeNewDB()
+            else {
+                 db.collection('table').doc(table_id).get()
+                .then(function(doc) {
+                    if (doc.exists) {
+                        restoreData(doc.data());
+                    }
+                    else {
+                        console.error("Error getting document:", error);
+                    }
+                }).catch(function(error) {
+                    console.error("Error getting document:", error);
+                });
+            
+            }
         }
-    }).catch(function(error) {
-        console.log("Error getting document:", error);
-    });
-
-
-
-    var weekdays = ['', 'Sun', 'Mon', 'Tue', 'Wed', 'Thr', 'Fri', 'Sat']
+    }
+    
+    function restoreData(data){
+        userList = data.users;
+        let userNum = userList.length;
+        selections = data.selections;
+        for(let k = 0; k < 7; k++){
+            for(let j = 0; j < 24; j++){
+//                for(let i = 0; i < userNum; i++){
+//                    user = userList[i];
+//                    selection = selections[userList[i]];
+//                    selections[k][j].push(user);
+//                }
+                if(selections[k][j].includes(myId)){
+                    setColor(tableCells[k+1][j]);
+                }
+                else {
+                    let share = selections[k][j].length/userList.length;
+                    if(share == 0 || share == undefined){
+                        setColor(tableCells[k+1][j], "#ffffff");
+                    }
+                    else {
+                        let hex = colorSplit(0x4a148c, share);
+                        setColor(tableCells[k+1][j], hex);
+                    }    
+                }
+            }
+        }
+    }
+    function colorSplit(color, share){
+        let R, G, B;
+        color = color.toString(16);
+        R = color.substring(0,2);
+        G = color.substring(2,4);
+        B = color.substring(4,6);
+        R = parseInt(R,16);
+        G = parseInt(G,16);
+        B = parseInt(B,16);
+        R *=share;
+        G *=share;
+        B *=share;
+        R = parseInt(R, 10).toString(16);
+        R = R.length == 1 ? '0'+R : R;
+        G = parseInt(G, 10).toString(16);
+        G = G.length == 1 ? '0'+G : G;
+        B = parseInt(B, 10).toString(16);
+        B = B.length == 1 ? '0'+B : B;
+        color = R+G+B;
+        color = 0xffffff - parseInt(color,16);
+        
+        return '#' + color.toString(16);
+    }
 
     function writeNewDB(){
-        db.collection("table").doc(table_id).set({
-              users: ['newuser'],
-              newuser: []
-          })
+         for(let i = 0 ; i < 7; i++){
+            selections[`${i}`] = {};
+            for(let j = 0; j < 24; j++){
+                selections[`${i}`][`${j}`] = [];
+            }
+        }
+        let json = {
+            users: [myId],
+            selections: selections
+        };
+        db.collection("table").doc(table_id).set(json)
         .then(()=> {
-            console.log("Document successfully written!");
+            console.log("writeNewDB() success");
         })
         .catch((error)=> {
             console.error("Error writing document: ", error);
+            writeNewDB();
         });
     }
 
     function updateDB(){
-        var tableData = {};
+        var data = {};
+        needSync = false;
         isSyncing = true;
         $('#sync_btn')
             .prop("disabled", true)
-            .prop('value', '저장중');
-        tableData[myId] = mySelection;
-        db.collection('table').doc(table_id).update(tableData)
+        data = {selections : selections};
+        db.collection('table').doc(table_id).update(data)
         .then(()=> {
+            console.log("DB Synced");
+            if(needSync){
+                updateDB();
+            }
+            else {
             isSyncing = false;
             $('#sync_btn')
                 .prop("disabled", false)
-                .prop('value', '저장하기');;
+            }
+            
         })
         .catch((error)=> {
             console.error("Error writing document: ", error);
@@ -203,43 +340,60 @@
             addTimeTableCol('_weekday', i, weekdays[i]);
         }
     }
+    
+    function setColor(obj, color = "#4a148c"){
+        let cellId = obj.d || obj[0].id;
+//        console.log(color);
+        $(`#${cellId}`).animate({backgroundColor: color}, 500);
+    }
 
-    function cellclick(obj){
-        if(obj.id.includes('weekday_')){
-            if(mySelectionDayTmpName == obj.id.charAt(11)){
-                mySelection[mySelectionDayTmpName] = mySelectionDayTmp.slice();
-                for(let i = 0 ; i < 24; i++){
-                    if(mySelectionDayTmp[i] == 0){
-//                        mySelection[mySelectionDayTmpName][i] = 0;
-                        $(`#td${i}_${mySelectionDayTmpName}`).animate({backgroundColor: "#ffffff"}, 50)
-                    }
-                }
-                mySelectionDayTmp = [];
-                mySelectionDayTmpName = '';
-            }
-            else {
-                mySelectionDayTmpName = obj.id.charAt(11);
-                mySelectionDayTmp = mySelection[mySelectionDayTmpName].slice();
-
-                for(let i = 0 ; i < 24; i++){
-                    mySelection[mySelectionDayTmpName][i] = 1;
-                    $(`#td${i}_${mySelectionDayTmpName}`).animate({backgroundColor: "#5CD1E5"}, 100)
-                }
-            }
+    function cellclick(obj, color = "#4a148c", sync = true){
+        let cellId = obj.id || obj[0].id;
+        if(cellId.includes('_0')){
+            return
+        }
+        else if(cellId.includes('weekday_')){
+//            if(mySelectionDayTmpName == cellId.charAt(11)){
+//                mySelection[mySelectionDayTmpName] = mySelectionDayTmp.slice();
+//                for(let i = 0 ; i < 24; i++){
+//                    if(mySelectionDayTmp[i] == 0){
+////                        mySelection[mySelectionDayTmpName][i] = 0;
+//                        $(`#td${i}_${mySelectionDayTmpName}`).animate({backgroundColor: "#ffffff"}, 50)
+//                    }
+//                }
+//                mySelectionDayTmp = [];
+//                mySelectionDayTmpName = '';
+//            }
+//            else {
+//                mySelectionDayTmpName = cellId.charAt(11);
+//                mySelectionDayTmp = mySelection[mySelectionDayTmpName].slice();
+//
+//                for(let i = 0 ; i < 24; i++){
+//                    mySelection[mySelectionDayTmpName][i] = 1;
+//                    $(`#td${i}_${mySelectionDayTmpName}`).animate({backgroundColor: color}, 100)
+//                }
+//            }
         }
         else {
-            var id = obj.id.split(/td(\d*)_(\d*)/).filter(Boolean);
-            console.log(`#td${id[0]}_${id[1]}`);
-            if(mySelection[id[1]][id[0]] != 1){
-                mySelection[id[1]][id[0]] = 1
-                $(`#td${id[0]}_${id[1]}`).animate({backgroundColor: "#5CD1E5"}, 100)
+            var id = cellId.split(/td(\d*)_(\d*)/).filter(Boolean);
+            //console.log(`#td${id[0]}_${id[1]}`);
+            if(!selections[id[1]-1][id[0]].includes(myId)){
+                selections[id[1]-1][id[0]].push(myId);
+                $(`#td${id[0]}_${id[1]}`).animate({backgroundColor: color}, 100)
             }
             else {
-                mySelection[id[1]][id[0]] = 0
+                selections[id[1]-1][id[0]] = selections[id[1]-1][id[0]].filter(e => e != myId);
                 $(`#td${id[0]}_${id[1]}`).animate({backgroundColor: "#ffffff"}, 50)
             }
         }
-        updateDB();
+        if(sync){
+            if(isSyncing){
+                needSync = true;    
+            }
+            else {
+                updateDB();   
+            }
+        }
     }
 
 </script>
@@ -260,27 +414,11 @@
   </form>
 </dialog> -->
 
-      <button class="btn waves-effect waves-light" type="submit" id="sync_btn" onclick="updateDB()">저장하기
-    <i class="material-icons right">send</i>
-  </button>
-    <table id="main_table" align="center" border="1" bordercolor="#5CD1E5"
-        width="550" height="600">
+      
 
-    </table>
 
     <script>
-        addWeekday()
-        // TODO 늦은 시간 안보이기 기능 추가. row번호는 시간에 따름.
-        for(let i = 0; i < 24; i++){
-            addTimeTableRow(i)
-        }
 
-        for(let i = 0 ; i < 8; i++){
-            tableCells[i] = new Array(24);
-            for(let j = 0 ; j < 24; j++){
-                tableCells[i][j] = $(`#td${j}_${i}`);
-            }
-        }
        // drag event handle
   $(function () {
       var isMouseDown = false;
