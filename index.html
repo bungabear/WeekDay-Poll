@@ -91,9 +91,10 @@
     <button class="btn waves-effect waves-light" type="submit" id="sync_btn" onclick="updateDB()">저장하기
         <i class="material-icons right">send</i>
     </button>
-    <table id="main_table" align="center" border="1" bordercolor="#4a148c"
-        width="550" height="600">
-    </table>
+    <div style="padding-left: 20px; padding-right: 30px;">
+        <table id="main_table" align="center" >
+        </table>
+    </div>
 <script>
     const weekdays = ['', 'Sun', 'Mon', 'Tue', 'Wed', 'Thr', 'Fri', 'Sat']
     // Initialize Firebase
@@ -396,51 +397,56 @@
         }
     }
 
-</script>
-
-<!--
-<dialog id="favDialog" open>
-  <form method="dialog">
-    <section>
-
-<input type="radio" name="chk_info" value="HTML">HTML
-<input type="radio" name="chk_info" value="CSS">CSS
-<input type="radio" name="chk_info" value="웹디자인">웹디자인
-    </section>
-    <menu>
-      <button id="cancel" type="reset">Cancel</button>
-      <button type="submit">Confirm</button>
-    </menu>
-  </form>
-</dialog> -->
-
-      
-
-
-    <script>
-
-       // drag event handle
+// drag event handle
   $(function () {
       var isMouseDown = false;
+      var touchX; 
+      var touchY; 
+      var currentTouchView;
       $("#main_table td")
-        .mousedown(function () {
+        .mousedown(function(){
           isMouseDown = true;
           cellclick(this);
-//          $(this).toggleClass("highlighted");
           return false; // prevent text selection
         })
-        .mouseover(function () {
+        .mouseover(function(){
           if (isMouseDown) {
               cellclick(this);
-//            $(this).toggleClass("highlighted");
           }
         })
-        .bind("selectstart", function () {
+        .bind("selectstart", function(){
           return false; // prevent text selection in IE
-        });
+        })
+      
+      for(let i = 1; i < 8; i++){
+          for(let j = 0; j < 24; j++){
+              $(`#td${j}_${i}`)
+              .bind('touchstart', function(e){
+                  currentTouchView = this;
+                  touchX = e.targetTouches[0].pageX;
+                  touchY = e.targetTouches[0].pageY;
+                  console.log(touchX, touchY);
+                  cellclick(this);
+                  return false;
+              })
+              .bind('touchmove', function(e){
+                  touchX = e.targetTouches[0].pageX;
+                  touchY = e.targetTouches[0].pageY;
+                  if(currentTouchView != document.elementFromPoint(touchX - window.pageXOffset, touchY - window.pageYOffset)){
+                    currentTouchView = document.elementFromPoint(touchX - window.pageXOffset, touchY - window.pageYOffset);
+                      console.log(currentTouchView);
+                    cellclick(currentTouchView);
+                    return false;
+                  }
+                  console.log(touchX, touchY);
+                return true;
+              });
+          }
+      }
+        
 
       $(document)
-        .mouseup(function () {
+        .mouseup(() =>{
           isMouseDown = false;
         });
     });
